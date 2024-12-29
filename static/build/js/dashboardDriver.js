@@ -1,10 +1,11 @@
 
+
 const driver = window.driver.js.driver;
 
 
 
 var steps = [
-    { popover: { title: 'Dashboard', description: 'Horilla dashboard section' } },
+    { popover: { title: 'Dashboard', description: 'Shahara dashboard section' } },
     { element: '#attendance-activity-container', popover: { title: 'Mark Attendance', description: 'Used to mark your attendance' } },
 ];
 
@@ -26,7 +27,7 @@ if ($('#mainNavProfile').length) {
     steps.push({ element: '#mainNavProfile', popover: { title: 'Profile', description: 'Profile and change password options' } });
 }
 if ($('.oh-card-dashboard').length) {
-    steps.push({ element: '#tileContainer .oh-card-dashboard:nth-child(1)', popover: { title: 'Dashboard Tiles', description: 'Horilla Dashboard Tiles' } });
+    steps.push({ element: '#tileContainer .oh-card-dashboard:nth-child(1)', popover: { title: 'Dashboard Tiles', description: 'Shahara Dashboard Tiles' } });
 }
 setTimeout(() => {
     if ($('.oh-btn-group').length) {
@@ -42,7 +43,7 @@ setTimeout(() => {
         steps.push({ element: '.oh-sidebar__company:nth-child(1)', popover: { title: 'Company', description: 'Your current company access' } });
     }
     if ($('[data-id="dashboardNav"]').length) {
-        steps.push({ element: '[data-id="dashboardNav"]', popover: { title: 'App', description: 'Horilla Hr Apps. eg Dashboard' } });
+        steps.push({ element: '[data-id="dashboardNav"]', popover: { title: 'App', description: 'Shahara Hr Apps. eg Dashboard' } });
     }
 }, 1000);
 driverObj = driver(

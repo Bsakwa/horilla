@@ -28,6 +28,12 @@
         </div>
         <main class="oh-auth">
             <div class="oh-auth-card mb-4">
+                <!-- Added logo section -->
+                <div class="text-center my-4">
+                    <img src="{% if white_label_company.logo %}{{ white_label_company.logo.url }}{% else %}{% static 'images/ui/shahara.png' %}{% endif %}" 
+                         alt="{{white_label_company_name}} Logo" 
+                         style="max-width: 200px; height: auto;" />
+                </div>
                 <h1 class="oh-onboarding-card__title oh-onboarding-card__title--h2 text-center my-3">
                     {% trans "Sign In" %}
                 </h1>
@@ -39,7 +45,7 @@
                     <div class="oh-input-group">
                         <label class="oh-label" for="username">{% trans "Username" %}</label>
                         <input type="text" id="username" name="username" class="oh-input w-100"
-                            placeholder="e.g. adam.luis@horilla.com" />
+                            placeholder="e.g. adam.luis@example.com" />
                     </div>
                     <div class="oh-input-group">
                         <label class="oh-label" for="password">{% trans "Password" %}</label>
@@ -48,15 +54,15 @@
                                 class="oh-input oh-input--password w-100" placeholder="Use alphanumeric characters" />
                             <button type="button" class="oh-btn oh-btn--transparent oh-password-input--toggle">
                                 <ion-icon class="oh-passowrd-input__show-icon" title="{% trans 'Show Password' %}"
-                                    name="eye-outline"></ion-icon>
-                                <ion-icon class="oh-passowrd-input__hide-icon d-none" title="{% trans 'Hide Password' %}"
                                     name="eye-off-outline"></ion-icon>
+                                <ion-icon class="oh-passowrd-input__hide-icon d-none" title="{% trans 'Hide Password' %}"
+                                    name="eye-outline"></ion-icon>
                             </button>
                         </div>
                     </div>
                     <button type="submit"
                         class="oh-btn oh-onboarding-card__button mt-4 oh-btn--secondary oh-btn--shadow w-100 mb-4"
-                        role="button">
+                        role="button" style="background-color: #6a0dad; color: #fff;">
                         <ion-icon class="me-2" name="lock-closed-outline"></ion-icon>
                         {% trans "Secure Sign-in" %}
                     </button>
@@ -96,20 +102,6 @@
                     </div>
                 {% endif %}
             </div>
-            <div>
-                <img src={% if white_label_company.icon %}
-                        "{{white_label_company.icon.url}}"
-                        alt="{{white_label_company_name}}"
-                        style=" opacity:.90; 200px; height: 140px;"
-                    {% else %}
-                        "{% static 'images/ui/auth-logo.png' %}" alt="Horilla"
-                    {% endif %}
-                />
-                {% if white_label_company %}
-                <p style=" font-size: large; color: gray; text-align: center;" class="mt-2">{{white_label_company}}</p>
-                {% endif %}
-
-            </div>
         </main>
     </div>
     <script src="{% static '/build/js/web.frontend.min.js' %}"></script>
@@ -132,3 +124,4 @@
 </body>
 
 </html>
+
