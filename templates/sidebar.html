@@ -1,5 +1,82 @@
 {% load static %} {% load i18n %} {% load horillafilters  %}
 {% load basefilters %}
+
+<style>
+  .oh-sidebar {
+    background: #4B0082;
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-x: hidden;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  }
+
+  .oh-sidebar__menu-link {
+    color: rgba(255,255,255,0.95) !important;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    margin: 0 0.5rem;
+  }
+
+  .oh-sidebar__menu-link:hover {
+    background-color: rgba(255,255,255,0.15);
+    transform: translateX(4px);
+  }
+
+  .oh-sidebar__menu-link--active {
+    background-color: rgba(255,255,255,0.2) !important;
+    font-weight: 500;
+  }
+
+  .oh-sidebar__submenu {
+    background-color: rgba(0,0,0,0.15);
+    margin: 0.25rem 0.75rem 0.25rem 1rem;
+    border-radius: 6px;
+  }
+
+  .oh-sidebar__submenu-link {
+    color: rgba(255,255,255,0.85) !important;
+    transition: all 0.2s ease;
+  }
+
+  .oh-sidebar__submenu-link:hover {
+    color: white !important;
+    transform: translateX(4px);
+    text-decoration: underline;
+  }
+
+  .oh-sidebar__company-title {
+    color: white;
+    font-weight: 500;
+  }
+
+  .oh-sidebar__company-link {
+    color: rgba(255,255,255,0.75);
+    transition: color 0.2s ease;
+  }
+
+  .oh-sidebar__company-link:hover {
+    color: white;
+  }
+
+  .highlight-selected {
+    background-color: rgba(255,68,0,0.08);
+    transition: background-color 0.2s ease;
+  }
+  
+  .highlight-selected:hover {
+    background-color: rgba(255,68,0,0.12);
+  }
+
+  .fade-me-out.htmx-swapping {
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+  }
+</style>
+
+
+
 <script>
   function activeNav(id) {
     const navElement = $(`#${id}`);
