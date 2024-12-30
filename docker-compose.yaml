@@ -8,18 +8,24 @@ services:
       - 8000:8000
     restart: unless-stopped
     environment:
-      DATABASE_URL: "postgres://postgres:postgres@db:5432/horilla"
+      DATABASE_URL: "postgres://postgres:postgres@db:5432/shahara"
     command: ./entrypoint.sh
     volumes:
       - ./horilla:/app/horilla
     depends_on:
       db:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
 
   db:
     image: postgres:16-bullseye
     environment:
-      POSTGRES_DB: horilla
+      POSTGRES_DB: shahara
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
@@ -30,10 +36,22 @@ services:
     volumes:
       - horilla-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    # Add logging configuration
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   horilla-data:
