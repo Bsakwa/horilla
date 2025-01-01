@@ -120,10 +120,30 @@ DATABASES = {
         'PASSWORD': 'postgres',
         'HOST': 'db',
         'PORT': '5432',
+        'CONN_MAX_AGE': 60,
+        'OPTIONS': {
+            'keepalives': 1,
+            'keepalives_idle': 60,
+            'keepalives_interval': 10,
+            'keepalives_count': 5,
+            'sslmode': 'prefer',
+        },
+        'ATOMIC_REQUESTS': True,
+        'CONN_HEALTH_CHECKS': True,
     }
 }
 
-
+# Cache settings (optional but recommended)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 minutes
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000
+        }
+    }
+}
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 

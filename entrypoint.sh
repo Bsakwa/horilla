@@ -44,7 +44,7 @@ check_database_connection() {
     local max_retries=5
     local retry=0
     local wait_time=5
-
+    
     while [ $retry -lt $max_retries ]; do
         if python3 manage.py check --database default > /dev/null 2>&1; then
             echo "Database connection successful"
@@ -53,11 +53,20 @@ check_database_connection() {
         echo "Database connection failed, retrying in $wait_time seconds... ($(( retry + 1 ))/$max_retries)"
         sleep $wait_time
         retry=$(( retry + 1 ))
+        
+        # Try to recover connection
+        if [ $retry -eq 3 ]; then
+            echo "Attempting to recover database connection..."
+            pg_isready -h db -p 5432 -U postgres
+        fi
     done
-
+    
     echo "Failed to establish database connection after $max_retries attempts"
     return 1
 }
+
+# Trap SIGTERM for graceful shutdown
+trap 'echo "Received SIGTERM, shutting down gracefully..."; kill -TERM $child; wait $child' SIGTERM
 
 echo "Starting database setup..."
 
@@ -79,18 +88,23 @@ python3 manage.py collectstatic --noinput
 # Create superuser
 create_superuser
 
+# Calculate number of workers based on CPU cores
+WORKERS=$(( 2 * $(nproc) ))
+
 # Start Gunicorn with optimized settings
-echo "Starting Gunicorn..."
+echo "Starting Gunicorn with $WORKERS workers..."
 exec gunicorn --bind 0.0.0.0:8000 \
-    --workers 3 \
-    --threads 2 \
+    --workers $WORKERS \
+    --threads 4 \
     --worker-class=gthread \
     --timeout 120 \
-    --keep-alive 5 \
+    --keep-alive 65 \
     --max-requests 1000 \
     --max-requests-jitter 50 \
     --access-logfile - \
     --error-logfile - \
     --log-level info \
     --capture-output \
+    --worker-tmp-dir /dev/shm \
+    --graceful-timeout 30 \
     horilla.wsgi:application
