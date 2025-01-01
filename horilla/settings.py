@@ -1,3 +1,4 @@
+
 """
 Django settings for horilla project.
 
@@ -14,6 +15,14 @@ import os
 from os.path import join
 from pathlib import Path
 
+from django.contrib.messages import constants as messages
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
+
 import environ
 from django.contrib.messages import constants as messages
 
@@ -29,9 +38,10 @@ env = environ.Env(
         str,
         "django-insecure-j8op9)1q8$1&0^s&p*_0%d#pr@w9qj@1o=3#@d=a(^@9@zd@%j",
     ),
-    ALLOWED_HOSTS=(list, ["*", "164.92.138.62"]),
-    CSRF_TRUSTED_ORIGINS=(list, ["http://localhost:8000", "http://164.92.138.62"]),
+    ALLOWED_HOSTS=(list, ["*"]),
+    CSRF_TRUSTED_ORIGINS=(list, ["http://localhost:8000"]),
 )
+
 env.read_env(os.path.join(BASE_DIR, ".env"), overwrite=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
@@ -41,6 +51,9 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
+
+
+# Application definition
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -66,10 +79,9 @@ INSTALLED_APPS = [
     "widget_tweaks",
     "django_apscheduler",
 ]
+
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
-
 APSCHEDULER_RUN_NOW_TIMEOUT = 25  # Seconds
-
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -77,8 +89,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-
-   "simple_history.middleware.HistoryRequestMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -108,42 +119,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "horilla.wsgi.application"
 
-
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'shahara',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'db',
-        'PORT': '5432',
-        'CONN_MAX_AGE': 60,
-        'OPTIONS': {
-            'keepalives': 1,
-            'keepalives_idle': 60,
-            'keepalives_interval': 10,
-            'keepalives_count': 5,
-            'sslmode': 'prefer',
-        },
-        'ATOMIC_REQUESTS': True,
-        'CONN_HEALTH_CHECKS': True,
+        'NAME': 'shahara',          # Database name
+        'USER': 'postgres',         # Database user
+        'PASSWORD': 'postgres',     # Database password
+        'HOST': 'db',               # Database host (service name in Docker Compose)
+        'PORT': '5432',             # Database port
     }
 }
 
-# Cache settings (optional but recommended)
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
-        'TIMEOUT': 300,  # 5 minutes
-        'OPTIONS': {
-            'MAX_ENTRIES': 1000
-        }
-    }
-}
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
@@ -162,7 +151,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
@@ -177,11 +165,11 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media/")
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
 
 MESSAGE_TAGS = {
     messages.DEBUG: "oh-alert--warning",
@@ -191,14 +179,12 @@ MESSAGE_TAGS = {
     messages.ERROR: "oh-alert--danger",
 }
 
-
-CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
+CSRF_TRUSTED_ORIGINS = ["http://localhost:8000"]
 
 LOGIN_URL = "/login"
 LOGIN_REDIRECT_URL = "/"
 
 SIMPLE_HISTORY_REVERT_DISABLED = True
-
 
 DJANGO_NOTIFICATIONS_CONFIG = {
     "USE_JSONFIELD": True,
@@ -221,7 +207,6 @@ LANGUAGES = (
 LOCALE_PATHS = [
     join(BASE_DIR, "horilla", "locale"),
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
