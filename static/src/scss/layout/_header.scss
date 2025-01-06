@@ -1,4 +1,4 @@
-// -----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------0
 // This file contains all styles related to the header of the site/application.
 // -----------------------------------------------------------------------------
 .oh-navbar__toggle-link {
@@ -25,8 +25,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: $white;
+  background-color: rgba(255, 255, 255, 0.9); // Semi-transparent white background
   border-bottom: 3px solid hsl(0, 0%, 93%);
+  position: sticky; // Make the navbar sticky
+  top: 0; // Stick to the top of the viewport
+  z-index: 1000; // Ensure the navbar stays above other content
+  backdrop-filter: blur(5px); // Add a frosted glass effect
+  transition: background-color 0.3s ease; // Smooth transition for background color
 }
 .oh-navbar__systray {
   display: flex;
