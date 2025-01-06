@@ -128,7 +128,7 @@ DATABASES = {
         'NAME': 'shahara',          # Database name
         'USER': 'postgres',         # Database user
         'PASSWORD': 'postgres',     # Database password
-        'HOST': 'db',               # Database host (service name in Docker Compose)
+        'HOST': '',               # Database host (service name in Docker Compose)
         'PORT': '5432',             # Database port
     }
 }
