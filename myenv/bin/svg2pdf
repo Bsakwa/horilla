@@ -1,4 +1,4 @@
-#!/home/horilla/myenv/bin/python3
+#!/home/horilla/myenv/bin/python
 """A simple converter from SVG to PDF.
 
 For further information please check the file README.txt!
