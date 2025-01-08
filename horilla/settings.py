@@ -127,8 +127,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'shahara',          # Database name
         'USER': 'postgres',         # Database user
-        'PASSWORD': 'postgres',     # Database password
-        'HOST': '',               # Database host (service name in Docker Compose)
+        'PASSWORD': 'mynewpass',     # Database password
+        'HOST': 'localhost',               # Database host (service name in Docker Compose)
         'PORT': '5432',             # Database port
     }
 }
