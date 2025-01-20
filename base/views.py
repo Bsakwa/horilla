@@ -37,6 +37,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
+from accessibility.models import DefaultAccessibility
 from base.backends import ConfiguredEmailBackend
 from base.decorators import (
     shift_request_change_permission,
@@ -158,6 +159,7 @@ from employee.models import (
     Employee,
     EmployeeGeneralSetting,
     EmployeeWorkInformation,
+    ProfileEditFeature,
 )
 from horilla.decorators import (
     delete_permission,
@@ -173,6 +175,7 @@ from horilla.horilla_settings import (
     DB_INIT_PASSWORD,
     DYNAMIC_URL_PATTERNS,
     FILE_STORAGE,
+    NO_PERMISSION_MODALS,
 )
 from horilla.methods import get_horilla_model_class, remove_dynamic_url
 from horilla_audit.forms import HistoryTrackingFieldsForm
@@ -908,6 +911,7 @@ def user_group_table(request):
     """
     permissions = []
     apps = APPS
+    no_permission_models = NO_PERMISSION_MODALS
     form = UserGroupForm()
     for app_name in apps:
         app_models = []
@@ -931,6 +935,7 @@ def user_group_table(request):
         {
             "permissions": permissions,
             "form": form,
+            "no_permission_models": no_permission_models,
         },
     )
 
@@ -975,6 +980,7 @@ def user_group(request):
     permissions = []
 
     apps = APPS
+    no_permission_models = NO_PERMISSION_MODALS
     form = UserGroupForm()
     for app_name in apps:
         app_models = []
@@ -994,6 +1000,7 @@ def user_group(request):
             "permissions": permissions,
             "form": form,
             "groups": paginator_qry(groups, request.GET.get("page")),
+            "no_permission_models": no_permission_models,
         },
     )
 
@@ -1007,6 +1014,7 @@ def user_group_search(request):
     permissions = []
 
     apps = APPS
+    no_permission_models = NO_PERMISSION_MODALS
     form = UserGroupForm()
     for app_name in apps:
         app_models = []
@@ -1029,6 +1037,7 @@ def user_group_search(request):
             "permissions": permissions,
             "form": form,
             "groups": paginator_qry(groups, request.GET.get("page")),
+            "no_permission_models": no_permission_models,
         },
     )
 
@@ -1223,6 +1232,7 @@ def object_duplicate(request, obj_id, **kwargs):
     template = kwargs["template"]
     original_object = model.objects.get(id=obj_id)
     form = form_class(instance=original_object)
+    searchWords = form.get_template_language()
     if request.method == "GET":
         for field_name, field in form.fields.items():
             if isinstance(field, forms.CharField):
@@ -1242,11 +1252,11 @@ def object_duplicate(request, obj_id, **kwargs):
             new_object.id = None
             new_object.save()
             return HttpResponse("<script>window.location.reload()</script>")
-
     context = {
         kwargs.get("form_name", "form"): form,
         "obj_id": obj_id,
         "duplicate": True,
+        "searchWords": searchWords,
     }
     return render(request, template, context)
 
@@ -3069,46 +3079,7 @@ def employee_permission_assign(request):
     ]
     installed_apps = [app for app in settings.INSTALLED_APPS if app in horilla_apps]
 
-    no_permission_models = [
-        "historicalbonuspoint",
-        "assetreport",
-        "assetdocuments",
-        "returnimages",
-        "holiday",
-        "companyleave",
-        "historicalavailableleave",
-        "historicalleaverequest",
-        "historicalleaveallocationrequest",
-        "leaverequestconditionapproval",
-        "historicalcompensatoryleaverequest",
-        "employeepastleaverestrict",
-        "overrideleaverequests",
-        "historicalrotatingworktypeassign",
-        "employeeshiftday",
-        "historicalrotatingshiftassign",
-        "historicalworktyperequest",
-        "historicalshiftrequest",
-        "multipleapprovalmanagers",
-        "attachment",
-        "announcementview",
-        "emaillog",
-        "driverviewed",
-        "dashboardemployeecharts",
-        "attendanceallowedip",
-        "tracklatecomeearlyout",
-        "historicalcontract",
-        "overrideattendance",
-        "overrideleaverequest",
-        "overrideworkinfo",
-        "multiplecondition",
-        "historicalpayslip",
-        "reimbursementmultipleattachment",
-        "historicalcontract",
-        "overrideattendance",
-        "overrideleaverequest",
-        "workrecord",
-        "historicalticket",
-    ]
+    no_permission_models = NO_PERMISSION_MODALS
     for app_name in installed_apps:
         app_models = []
         for model in get_models_in_app(app_name):
@@ -3123,6 +3094,7 @@ def employee_permission_assign(request):
             {"app": app_name.capitalize().replace("_", " "), "app_models": app_models}
         )
     context["permissions"] = permissions
+    context["no_permission_models"] = no_permission_models
     context["employees"] = paginator_qry(employees, request.GET.get("page"))
     return render(
         request,
@@ -3204,46 +3176,7 @@ def permission_table(request):
     apps = APPS
     form = AssignPermission()
 
-    no_permission_models = [
-        "historicalbonuspoint",
-        "assetreport",
-        "assetdocuments",
-        "returnimages",
-        "holiday",
-        "companyleave",
-        "historicalavailableleave",
-        "historicalleaverequest",
-        "historicalleaveallocationrequest",
-        "leaverequestconditionapproval",
-        "historicalcompensatoryleaverequest",
-        "employeepastleaverestrict",
-        "overrideleaverequests",
-        "historicalrotatingworktypeassign",
-        "employeeshiftday",
-        "historicalrotatingshiftassign",
-        "historicalworktyperequest",
-        "historicalshiftrequest",
-        "multipleapprovalmanagers",
-        "attachment",
-        "announcementview",
-        "emaillog",
-        "driverviewed",
-        "dashboardemployeecharts",
-        "attendanceallowedip",
-        "tracklatecomeearlyout",
-        "historicalcontract",
-        "overrideattendance",
-        "overrideleaverequest",
-        "overrideworkinfo",
-        "multiplecondition",
-        "historicalpayslip",
-        "reimbursementmultipleattachment",
-        "historicalcontract",
-        "overrideattendance",
-        "overrideleaverequest",
-        "workrecord",
-        "historicalticket",
-    ]
+    no_permission_models = NO_PERMISSION_MODALS
 
     for app_name in apps:
         app_models = []
@@ -3268,6 +3201,7 @@ def permission_table(request):
         {
             "permissions": permissions,
             "form": form,
+            "no_permission_models": no_permission_models,
         },
     )
 
@@ -4943,6 +4877,10 @@ def general_settings(request):
         AccountBlockUnblock.objects.exists()
         and AccountBlockUnblock.objects.first().is_enabled
     )
+    enabled_profile_edit = (
+        ProfileEditFeature.objects.exists()
+        and ProfileEditFeature.objects.first().is_enabled
+    )
     history_tracking_instance = HistoryTrackingFields.objects.first()
     history_fields_form_initial = {}
     if history_tracking_instance and history_tracking_instance.tracking_fields:
@@ -4975,6 +4913,7 @@ def general_settings(request):
             "history_fields_form": history_fields_form,
             "history_tracking_instance": history_tracking_instance,
             "enabled_block_unblock": enabled_block_unblock,
+            "enabled_profile_edit": enabled_profile_edit,
             "prefix_form": prefix_form,
             "companies": companies,
             "selected_company_id": selected_company_id,
@@ -5162,6 +5101,44 @@ def enable_account_block_unblock(request):
             _(
                 f"Account block/unblock setting has been {'enabled' if enabled else 'disabled'}."
             ),
+        )
+        if request.META.get("HTTP_HX_REQUEST"):
+            return HttpResponse()
+        return redirect(general_settings)
+    return HttpResponse(status=405)
+
+
+from accessibility.accessibility import ACCESSBILITY_FEATURE
+
+
+@login_required
+@permission_required("employee.change_employee")
+def enable_profile_edit_feature(request):
+
+    if request.method == "POST":
+        enabled = request.POST.get("enable_profile_edit") == "on"
+        instance = ProfileEditFeature.objects.first()
+        feature = DefaultAccessibility.objects.filter(feature="profile_edit").first()
+        if instance:
+            instance.is_enabled = enabled
+            instance.save()
+        else:
+            ProfileEditFeature.objects.create(is_enabled=enabled)
+
+        if enabled and not feature:
+            DefaultAccessibility.objects.create(
+                feature="profile_edit", filter={"feature": ["profile_edit"]}
+            )
+
+        if enabled:
+            if not any(item[0] == "profile_edit" for item in ACCESSBILITY_FEATURE):
+                ACCESSBILITY_FEATURE.append(("profile_edit", _("Profile Edit Access")))
+        else:
+            ACCESSBILITY_FEATURE.pop()
+
+        messages.success(
+            request,
+            _(f"Profile edit feature has been {'enabled' if enabled else 'disabled'}."),
         )
         if request.META.get("HTTP_HX_REQUEST"):
             return HttpResponse()
@@ -5540,8 +5517,11 @@ def add_more_approval_managers(request):
     if managers_count:
         managers_count = int(managers_count) + 1
         field_name = f"multi_approval_manager_{managers_count}"
-        form.fields[field_name] = forms.ModelChoiceField(
-            queryset=Employee.objects.all(),
+        choices = [("reporting_manager_id", _("Reporting Manager"))] + [
+            (employee.pk, str(employee)) for employee in Employee.objects.all()
+        ]
+        form.fields[field_name] = forms.ChoiceField(
+            choices=choices,
             widget=forms.Select(
                 attrs={
                     "class": "oh-select oh-select-2 mb-3",
@@ -5596,28 +5576,31 @@ def multiple_level_approval_create(request):
         department = Department.objects.get(id=dept_id)
         instance = MultipleApprovalCondition()
         if form.is_valid():
+            instance.department = department
+            instance.condition_field = condition_field
+            instance.condition_operator = condition_operator
+            instance.company_id = company
             if condition_operator != "range":
-                instance.department = department
-                instance.condition_field = condition_field
-                instance.condition_operator = condition_operator
                 instance.condition_value = condition_value
-                instance.company_id = company
             else:
-                instance.department = department
-                instance.condition_field = condition_field
-                instance.condition_operator = condition_operator
                 instance.condition_start_value = condition_start_value
                 instance.condition_end_value = condition_end_value
-                instance.company_id = company
+
             instance.save()
             sequence = 0
             for emp_id in condition_approval_managers:
                 sequence += 1
-                employee_id = int(emp_id)
+                reporting_manager = None
+                try:
+                    employee_id = int(emp_id)
+                except:
+                    employee_id = None
+                    reporting_manager = emp_id
                 MultipleApprovalManagers.objects.create(
                     condition_id=instance,
                     sequence=sequence,
                     employee_id=employee_id,
+                    reporting_manager=reporting_manager,
                 )
             form = MultipleApproveConditionForm()
             messages.success(
@@ -5636,8 +5619,11 @@ def edit_approval_managers(form, managers):
             form.initial["multi_approval_manager"] = manager.employee_id
         else:
             field_name = f"multi_approval_manager_{i}"
-            form.fields[field_name] = forms.ModelChoiceField(
-                queryset=Employee.objects.all(),
+            choices = [("reporting_manager_id", _("Reporting Manager"))] + [
+                (employee.pk, str(employee)) for employee in Employee.objects.all()
+            ]
+            form.fields[field_name] = forms.ChoiceField(
+                choices=choices,
                 label=_("Approval Manager {}").format(i),
                 widget=forms.Select(attrs={"class": "oh-select oh-select-2 mb-3"}),
                 required=False,
@@ -5669,11 +5655,17 @@ def multiple_level_approval_edit(request, condition_id):
             for key, value in request.POST.items():
                 if key.startswith("multi_approval_manager"):
                     sequence += 1
-                    employee_id = int(value)
+                    reporting_manager = None
+                    try:
+                        employee_id = int(value)
+                    except:
+                        employee_id = None
+                        reporting_manager = value
                     MultipleApprovalManagers.objects.create(
                         condition_id=instance,
                         sequence=sequence,
                         employee_id=employee_id,
+                        reporting_manager=reporting_manager,
                     )
     selected_company = request.session.get("selected_company")
     if selected_company != "all":
@@ -6239,7 +6231,7 @@ def driver_viewed_status(request):
 
 
 @login_required
-def employee_charts(request):
+def dashboard_components_toggle(request):
     """
     This function is used to create personalized dashboard charts for employees
     """
