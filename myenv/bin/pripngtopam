@@ -1,4 +1,4 @@
-#!/home/horilla/myenv/bin/python
+#!/home/horilla/myenv/bin/python3
 
 import struct
 
