@@ -765,6 +765,8 @@ class LeaveRequest(HorillaModel):
             managers = applicable_condition.approval_managers()
             for manager in managers:
                 sequence += 1
+                if not isinstance(manager, Employee):
+                    manager = getattr(self.employee_id.employee_work_info, manager)
                 LeaveRequestConditionApproval.objects.create(
                     sequence=sequence,
                     leave_request_id=self,
@@ -774,7 +776,7 @@ class LeaveRequest(HorillaModel):
     def clean(self):
         cleaned_data = super().clean()
         restricted_leave = RestrictLeave.objects.all()
-        leave_type_instance = LeaveType.objects.get(name=self.leave_type_id)
+        leave_type_instance = LeaveType.objects.get(id=self.leave_type_id.id)
 
         work_info = EmployeeWorkInformation.objects.filter(employee_id=self.employee_id)
         if work_info.exists():

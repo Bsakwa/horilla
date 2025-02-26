@@ -92,6 +92,7 @@ urlpatterns = [
     ),
     path("reset-send-success", views.reset_send_success, name="reset-send-success"),
     path("change-password", views.change_password, name="change-password"),
+    path("change-username", views.change_username, name="change-username"),
     path("logout", views.logout_user, name="logout"),
     path("settings", views.common_settings, name="settings"),
     path(
@@ -510,6 +511,11 @@ urlpatterns = [
         name="rotating-shift-assign-info-export",
     ),
     path(
+        "rotating-shift-assign-info-import",
+        views.rotating_shift_assign_import,
+        name="rotating-shift-assign-info-import",
+    ),
+    path(
         "settings/rotating-shift-assign-update/<int:id>/",
         views.rotating_shift_assign_update,
         name="rotating-shift-assign-update",
@@ -745,6 +751,11 @@ urlpatterns = [
         name="enable-account-block-unblock",
     ),
     path(
+        "enable-profile-edit-feature",
+        views.enable_profile_edit_feature,
+        name="enable-profile-edit-feature",
+    ),
+    path(
         "rwork-individual-view/<int:instance_id>/",
         views.rotating_work_individual_view,
         name="rwork-individual-view",
@@ -964,7 +975,11 @@ urlpatterns = [
         "announcement-viewed-by", announcement.viewed_by, name="announcement-viewed-by"
     ),
     path("driver-viewed", views.driver_viewed_status, name="driver-viewed"),
-    path("employee-charts", views.employee_charts, name="employee-charts"),
+    path(
+        "dashboard-components-toggle",
+        views.dashboard_components_toggle,
+        name="dashboard-components-toggle",
+    ),
     path("employee-chart-show", views.employee_chart_show, name="employee-chart-show"),
     path(
         "settings/enable-biometric-attendance/",

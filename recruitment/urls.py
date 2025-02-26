@@ -14,7 +14,7 @@ from base.views import add_remove_dynamic_fields, object_duplicate
 from recruitment.forms import QuestionForm, RecruitmentCreationForm, StageCreationForm
 from recruitment.models import Candidate, Recruitment, RecruitmentSurvey, Stage
 from recruitment.views import views
-from recruitment.views.actions import get_template
+from recruitment.views.actions import get_mail_preview, get_template, get_template_hint
 
 urlpatterns = [
     path("recruitment-create", views.recruitment, name="recruitment-create"),
@@ -471,7 +471,8 @@ urlpatterns = [
         name="skill-zone-cand-delete",
     ),
     path("get-template/<int:obj_id>/", get_template, name="get-template"),
-    path("get-template-hint/", get_template, name="get-template-hint"),
+    path("get-mail-preview/", get_mail_preview, name="get-mail-preview"),
+    path("get-template-hint/", get_template_hint, name="get-template-hint"),
     path(
         "create-candidate-rating/<int:cand_id>/",
         views.create_candidate_rating,
@@ -524,12 +525,12 @@ urlpatterns = [
         name="candidate-self-tracking-rating-option",
     ),
     path(
-        "candidate-self-status-tracking",
+        "candidate-self-status-tracking/",
         views.candidate_self_status_tracking,
         name="candidate-self-status-tracking",
     ),
     path(
-        "candidate-self-status-tracking/<int:cand_id>",
+        "candidate-self-status-tracking/<int:cand_id>/",
         views.candidate_self_status_tracking_managers_view,
         name="candidate-self-status-tracking",
     ),
