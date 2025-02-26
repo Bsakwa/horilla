@@ -27,6 +27,7 @@ from django.forms import DateInput, HiddenInput, TextInput
 from django.template import loader
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes
+from django.utils.html import strip_tags
 from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy as _trans
@@ -196,7 +197,13 @@ class ModelForm(forms.ModelForm):
 
             if isinstance(
                 widget,
-                (forms.NumberInput, forms.EmailInput, forms.TextInput, forms.FileInput),
+                (
+                    forms.NumberInput,
+                    forms.EmailInput,
+                    forms.TextInput,
+                    forms.FileInput,
+                    forms.URLInput,
+                ),
             ):
                 label = ""
                 if field.label is not None:
@@ -1294,6 +1301,11 @@ class RotatingShiftForm(ModelForm):
                 initial=initial,
             )
 
+        for field in self.fields:
+            if field.startswith("shift"):
+                shift_counts += 1
+                create_shift_field(field, shift_counts <= 2)
+
         for key in self.data.keys():
             if key.startswith("shift") and self.data[key]:
                 shift_counts += 1
@@ -1886,6 +1898,56 @@ class ChangePasswordForm(forms.Form):
         return cleaned_data
 
 
+class ChangeUsernameForm(forms.Form):
+    old_username = forms.CharField(
+        label=_("Old Username"),
+        strip=False,
+        widget=forms.TextInput(
+            attrs={
+                "readonly": "readonly",
+                "class": "oh-input oh-input--text w-100 mb-2",
+            }
+        ),
+    )
+
+    username = forms.CharField(
+        label=_("Username"),
+        strip=False,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": _("Enter New Username"),
+                "class": "oh-input oh-input--text w-100 mb-2",
+            }
+        ),
+        help_text=_("Enter your username."),
+    )
+
+    password = forms.CharField(
+        label=_("Password"),
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "placeholder": _("Enter Password"),
+                "class": "oh-input oh-input--password w-100 mb-2",
+            }
+        ),
+        help_text=_("Enter your password."),
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(ChangeUsernameForm, self).__init__(*args, **kwargs)
+
+    def clean_password(self):
+        username = self.cleaned_data.get("username")
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError("Username already exists.")
+        password = self.cleaned_data.get("password")
+        if not self.user.check_password(password):
+            raise forms.ValidationError("Incorrect password.")
+        return password
+
+
 class ResetPasswordForm(SetPasswordForm):
     """
     ResetPasswordForm
@@ -2266,10 +2328,19 @@ class AnnouncementForm(ModelForm):
             "expire_date": DateInput(attrs={"type": "date"}),
         }
 
+    def clean_description(self):
+        description = self.cleaned_data.get("description", "").strip()
+        # Remove HTML tags and check if there's meaningful content
+        text_content = strip_tags(description).strip()
+        if not text_content:  # Checks if the field is empty after stripping HTML
+            raise forms.ValidationError("Description is required.")
+        return description
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["attachments"] = MultipleFileField(label="Attachments ")
         self.fields["attachments"].required = False
+        self.fields["description"].required = False
 
     def save(self, commit: bool = ...) -> Any:
         attachement = []

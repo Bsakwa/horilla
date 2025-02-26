@@ -23,13 +23,12 @@ from horilla.filters import FilterSet
 from horilla.group_by import group_by_queryset
 from horilla.horilla_middlewares import _thread_locals
 from horilla_views import models
-from horilla_views.cbv_methods import (
+from horilla_views.cbv_methods import (  # update_initial_cache,
     get_short_uuid,
     hx_request_required,
     paginator_qry,
     sortby,
     structured,
-    update_initial_cache,
     update_saved_filter_cache,
 )
 from horilla_views.forms import DynamicBulkUpdateForm, ToggleColumnForm
@@ -52,8 +51,14 @@ class HorillaListView(ListView):
     context_object_name = "queryset"
     # column = [("Verbose Name","field_name","avatar_mapping")], opt: avatar_mapping
     columns: list = []
+    default_columns: list = []
     search_url: str = ""
     bulk_select_option: bool = True
+    filter_selected: bool = True
+    quick_export: bool = True
+    bulk_update: bool = True
+
+    custom_empty_template: str = ""
 
     action_method: str = """"""
     """
@@ -93,11 +98,16 @@ class HorillaListView(ListView):
     records_per_page: int = 50
     export_fields: list = []
     verbose_name: str = ""
-
     bulk_update_fields: list = []
     bulk_template: str = "generic/bulk_form.html"
 
     header_attrs: dict = {}
+
+    def post(self, *args, **kwargs):
+        """
+        POST method to handle post submissions
+        """
+        return self.get(self, *args, **kwargs)
 
     def __init__(self, **kwargs: Any) -> None:
         if not self.view_id:
@@ -106,7 +116,7 @@ class HorillaListView(ListView):
 
         request = getattr(_thread_locals, "request", None)
         self.request = request
-        update_initial_cache(request, CACHE, HorillaListView)
+        # # update_initial_cache(request, CACHE, HorillaListView)
 
         # hidden columns configuration
         existing_instance = models.ToggleColumn.objects.filter(
@@ -119,10 +129,22 @@ class HorillaListView(ListView):
 
         self.visible_column = self.columns.copy()
 
-        self.toggle_form = ToggleColumnForm(self.columns, hidden_fields)
-        for column in self.columns:
-            if column[1] in hidden_fields:
-                self.visible_column.remove(column)
+        if not existing_instance:
+            if not self.default_columns:
+                self.default_columns = self.columns
+            self.toggle_form = ToggleColumnForm(
+                self.columns, self.default_columns, hidden_fields
+            )
+            for column in self.columns:
+                if column not in self.default_columns:
+                    self.visible_column.remove(column)
+        else:
+            self.toggle_form = ToggleColumnForm(
+                self.columns, self.default_columns, hidden_fields
+            )
+            for column in self.columns:
+                if column[1] in hidden_fields:
+                    self.visible_column.remove(column)
 
     def bulk_update_accessibility(self) -> bool:
         """
@@ -197,12 +219,30 @@ class HorillaListView(ListView):
             root_model=self.model, bulk_update_fields=self.bulk_update_fields
         )
 
-    def get_queryset(self):
+    def get_queryset(self, queryset=None, filtered=False, *args, **kwargs):
         if not self.queryset:
-            self.queryset = super().get_queryset()
+            self.queryset = super().get_queryset() if not queryset else queryset
             self._saved_filters = QueryDict("", mutable=True)
             if self.filter_class:
                 query_dict = self.request.GET
+                selected_ids = eval_validate(
+                    self.request.POST.get("selected_ids", "[]")
+                )
+
+                if (
+                    self.request.session.get("prev_path")
+                    and self.request.session.get("prev_path") != self.request.path
+                ):
+                    selected_ids = []
+                    self.request.session["hlv_selected_ids"] = selected_ids
+                    self.request.session["prev_path"] = self.request.path
+
+                if selected_ids and selected_ids != self.request.session.get(
+                    "hlv_selected_ids", []
+                ):
+                    self.request.session["hlv_selected_ids"] = selected_ids
+                    self.request.session["prev_path"] = self.request.path
+
                 if "filter_applied" in query_dict.keys():
                     update_saved_filter_cache(self.request, CACHE)
                 elif CACHE.get(
@@ -228,9 +268,23 @@ class HorillaListView(ListView):
                     query_dict._mutable = False
                 self._saved_filters = query_dict
                 self.request.exclude_filter_form = True
-                self.queryset = self.filter_class(
-                    data=query_dict, queryset=self.queryset, request=self.request
-                ).qs
+                if not filtered:
+                    self.queryset = self.filter_class(
+                        data=query_dict, queryset=self.queryset, request=self.request
+                    ).qs
+                else:
+                    self.queryset = queryset
+                if self.request.GET.get(
+                    "show_all"
+                ) == "true" and self.request.session.get("hlv_selected_ids"):
+                    del self.request.session["hlv_selected_ids"]
+                if self.request.session.get("hlv_selected_ids"):
+                    self.request.actual_ids = list(
+                        self.queryset.values_list("id", flat=True)
+                    )
+                    self.queryset = self.queryset.filter(
+                        id__in=self.request.session["hlv_selected_ids"]
+                    )
         return self.queryset
 
     def get_context_data(self, **kwargs: Any):
@@ -259,10 +313,14 @@ class HorillaListView(ListView):
         context["selected_instances_key_id"] = self.selected_instances_key_id
         context["row_status_indications"] = self.row_status_indications
         context["saved_filters"] = self._saved_filters
+        context["quick_export"] = self.quick_export
+        context["filter_selected"] = self.filter_selected
+        context["bulk_update"] = self.bulk_update
         if not self.verbose_name:
             self.verbose_name = self.model.__class__
         context["model_name"] = self.verbose_name
         context["export_fields"] = self.export_fields
+        context["custom_empty_template"] = self.custom_empty_template
         referrer = self.request.GET.get("referrer", "")
         if referrer:
             # Remove the protocol and domain part
@@ -306,7 +364,6 @@ class HorillaListView(ListView):
             context["keys_to_remove"] = keys_to_remove
 
         request = self.request
-        ordered_ids = list(queryset.values_list("id", flat=True))
         is_first_sort = False
         query_dict = self.request.GET
         if (
@@ -324,13 +381,12 @@ class HorillaListView(ListView):
                 query_dict, queryset, self.sortby_key, is_first_sort=is_first_sort
             )
 
-            ordered_ids = [instance.id for instance in queryset]
         ordered_ids = []
         if not self._saved_filters.get("field"):
             for instance in queryset:
-                instance.ordered_ids = ordered_ids
                 ordered_ids.append(instance.pk)
 
+        self.request.session[f"ordered_ids_{self.model.__name__.lower()}"] = ordered_ids
         context["queryset"] = paginator_qry(
             queryset, self._saved_filters.get("page"), self.records_per_page
         )
@@ -349,11 +405,12 @@ class HorillaListView(ListView):
                 groups, self._saved_filters.get("page"), 10
             )
 
-            for group in context["groups"]:
-                for instance in group["list"]:
-                    instance.ordered_ids = ordered_ids
-                    ordered_ids.append(instance.pk)
-        CACHE.get(self.request.session.session_key + "cbv")[HorillaListView] = context
+            # for group in context["groups"]:
+            #     for instance in group["list"]:
+            #         instance.ordered_ids = ordered_ids
+            #         ordered_ids.append(instance.pk)
+
+        # CACHE.get(self.request.session.session_key + "cbv")[HorillaListView] = context
         from horilla.urls import path, urlpatterns
 
         self.export_path = f"export-list-view-{get_short_uuid(4)}/"
@@ -399,8 +456,8 @@ class HorillaListView(ListView):
         from import_export import fields, resources
 
         request = getattr(_thread_locals, "request", None)
-        ids = eval_validate(request.GET["ids"])
-        _columns = eval_validate(request.GET["columns"])
+        ids = eval_validate(request.POST["ids"])
+        _columns = eval_validate(request.POST["columns"])
         queryset = self.model.objects.filter(id__in=ids)
 
         _model = self.model
@@ -471,7 +528,7 @@ class HorillaSectionView(TemplateView):
         super().__init__(**kwargs)
         request = getattr(_thread_locals, "request", None)
         self.request = request
-        update_initial_cache(request, CACHE, HorillaListView)
+        # update_initial_cache(request, CACHE, HorillaListView)
 
     nav_url: str = ""
     view_url: str = ""
@@ -519,15 +576,17 @@ class HorillaDetailedView(DetailView):
         super().__init__(**kwargs)
         request = getattr(_thread_locals, "request", None)
         self.request = request
-        update_initial_cache(request, CACHE, HorillaDetailedView)
+        # update_initial_cache(request, CACHE, HorillaDetailedView)
 
     def get_context_data(self, **kwargs: Any):
         context = super().get_context_data(**kwargs)
-        instance_ids = eval_validate(str(self.request.GET.get(self.ids_key)))
+        instance_ids = self.request.session.get(
+            f"ordered_ids_{self.model.__name__.lower()}", []
+        )
 
         pk = context["object"].pk
-        if instance_ids:
-            context["object"].ordered_ids = instance_ids
+        # if instance_ids:
+        #     context["object"].ordered_ids = instance_ids
         context["instance"] = context["object"]
 
         url = resolve(self.request.path)
@@ -553,9 +612,9 @@ class HorillaDetailedView(DetailView):
         context["action_method"] = self.action_method
         context["cols"] = self.cols
 
-        CACHE.get(self.request.session.session_key + "cbv")[
-            HorillaDetailedView
-        ] = context
+        # CACHE.get(self.request.session.session_key + "cbv")[
+        #     HorillaDetailedView
+        # ] = context
 
         return context
 
@@ -575,7 +634,7 @@ class HorillaTabView(TemplateView):
         super().__init__(**kwargs)
         request = getattr(_thread_locals, "request", None)
         self.request = request
-        update_initial_cache(request, CACHE, HorillaTabView)
+        # update_initial_cache(request, CACHE, HorillaTabView)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -588,7 +647,7 @@ class HorillaTabView(TemplateView):
         context["tabs"] = self.tabs
         context["view_id"] = self.view_id
 
-        CACHE.get(self.request.session.session_key + "cbv")[HorillaTabView] = context
+        # CACHE.get(self.request.session.session_key + "cbv")[HorillaTabView] = context
 
         return context
 
@@ -641,7 +700,7 @@ class HorillaCardView(ListView):
         super().__init__(**kwargs)
         request = getattr(_thread_locals, "request", None)
         self.request = request
-        update_initial_cache(request, CACHE, HorillaCardView)
+        # update_initial_cache(request, CACHE, HorillaCardView)
         self._saved_filters = QueryDict()
 
     def get_queryset(self):
@@ -712,12 +771,13 @@ class HorillaCardView(ListView):
             context["filter_dict"] = data_dict
 
         ordered_ids = list(queryset.values_list("id", flat=True))
+        ordered_ids = []
         if not self._saved_filters.get("field"):
             for instance in queryset:
-                instance.ordered_ids = ordered_ids
                 ordered_ids.append(instance.pk)
+        self.request.session[f"ordered_ids_{self.model.__name__.lower()}"] = ordered_ids
 
-        CACHE.get(self.request.session.session_key + "cbv")[HorillaCardView] = context
+        # CACHE.get(self.request.session.session_key + "cbv")[HorillaCardView] = context
         referrer = self.request.GET.get("referrer", "")
         if referrer:
             # Remove the protocol and domain part
@@ -833,7 +893,7 @@ class HorillaFormView(FormView):
         self.request = request
         if not self.success_url:
             self.success_url = self.request.path
-        update_initial_cache(request, CACHE, HorillaFormView)
+        # update_initial_cache(request, CACHE, HorillaFormView)
 
         if self.form_class:
             setattr(self.form_class, "structured", structured)
@@ -879,7 +939,9 @@ class HorillaFormView(FormView):
             pk = self.form.instance.pk
         # next/previous option in the forms
         if pk and self.request.GET.get(self.ids_key):
-            instance_ids = eval_validate(str(self.request.GET.get(self.ids_key)))
+            instance_ids = self.request.session.get(
+                f"ordered_ids_{self.model.__name__.lower()}", []
+            )
             url = resolve(self.request.path)
             key = list(url.kwargs.keys())[0]
             url_name = url.url_name
@@ -1023,7 +1085,7 @@ class HorillaFormView(FormView):
                 self.form_class.verbose_name = self.new_display_title
             form.close_button_attrs = self.close_button_attrs
             form.submit_button_attrs = self.submit_button_attrs
-            CACHE.get(self.request.session.session_key + "cbv")[HorillaFormView] = form
+            # CACHE.get(self.request.session.session_key + "cbv")[HorillaFormView] = form
             self.form = form
         return self.form
 
@@ -1052,12 +1114,13 @@ class HorillaNavView(TemplateView):
     empty_inputs: list = []
     view_types: list = []
     create_attrs: str = """"""
+    apply_first_filter = True
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         request = getattr(_thread_locals, "request", None)
         self.request = request
-        update_initial_cache(request, CACHE, HorillaNavView)
+        # update_initial_cache(request, CACHE, HorillaNavView)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1071,6 +1134,7 @@ class HorillaNavView(TemplateView):
         context["view_types"] = self.view_types
         context["create_attrs"] = self.create_attrs
         context["search_in"] = self.search_in
+        context["apply_first_filter"] = self.apply_first_filter
         context["filter_instance_context_name"] = self.filter_instance
         last_filter = CACHE.get(
             self.request.session.session_key
@@ -1085,7 +1149,7 @@ class HorillaNavView(TemplateView):
         context["active_view"] = models.ActiveView.objects.filter(
             path=self.request.path
         ).first()
-        CACHE.get(self.request.session.session_key + "cbv")[HorillaNavView] = context
+        # CACHE.get(self.request.session.session_key + "cbv")[HorillaNavView] = context
         return context
 
 
@@ -1117,7 +1181,7 @@ class HorillaProfileView(DetailView):
 
         request = getattr(_thread_locals, "request", None)
         self.request = request
-        update_initial_cache(request, CACHE, HorillaProfileView)
+        # update_initial_cache(request, CACHE, HorillaProfileView)
 
         from horilla.urls import path, urlpatterns
 
@@ -1190,10 +1254,11 @@ class HorillaProfileView(DetailView):
         ).first()
         if active_tab:
             context["active_target"] = active_tab.tab_target
-        instance_ids_str = self.request.GET.get("instance_ids")
-        if not instance_ids_str:
-            instance_ids_str = "[]"
-        instance_ids = eval_validate(instance_ids_str)
+
+        instance_ids = self.request.session.get(
+            f"ordered_ids_{self.model.__name__.lower()}", []
+        )
+
         if instance_ids:
             CACHE.set(
                 f"{self.request.session.session_key}hpv-instance-ids", instance_ids

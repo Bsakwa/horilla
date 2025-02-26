@@ -869,18 +869,18 @@ def leave_request_approve(request, id, emp_id=None):
     )
     if leave_request.status != "approved":
         if total_available_leave >= leave_request.requested_days:
-            if leave_request.requested_days > available_leave.available_days:
-                leave = leave_request.requested_days - available_leave.available_days
-                leave_request.approved_available_days = available_leave.available_days
-                available_leave.available_days = 0
-                available_leave.carryforward_days = (
-                    available_leave.carryforward_days - leave
+            if leave_request.requested_days > available_leave.carryforward_days:
+                leave = leave_request.requested_days - available_leave.carryforward_days
+                leave_request.approved_carryforward_days = (
+                    available_leave.carryforward_days
                 )
-                leave_request.approved_carryforward_days = leave
+                available_leave.carryforward_days = 0
+                available_leave.available_days = available_leave.available_days - leave
+                leave_request.approved_available_days = leave
             else:
-                temp = available_leave.available_days
-                available_leave.available_days = temp - leave_request.requested_days
-                leave_request.approved_available_days = leave_request.requested_days
+                temp = available_leave.carryforward_days
+                available_leave.carryforward_days = temp - leave_request.requested_days
+                leave_request.approved_carryforward_days = leave_request.requested_days
             leave_request.status = "approved"
             if not leave_request.multiple_approvals():
                 super(AvailableLeave, available_leave).save()
@@ -2044,14 +2044,7 @@ def user_leave_request(request, id):
                 )
                 requested_days = requested_days - company_leave_count
 
-        overlapping_requests = LeaveRequest.objects.filter(
-            employee_id=employee, start_date__lte=end_date, end_date__gte=start_date
-        ).exclude(status__in=["cancelled", "rejected"])
-        if overlapping_requests.exists():
-            form.add_error(
-                None, _("There is already a leave request for this date range..")
-            )
-        elif not leave_type.limit_leave or requested_days <= available_total_leave:
+        if not leave_type.limit_leave or requested_days <= available_total_leave:
             if form.is_valid():
                 leave_request = form.save(commit=False)
                 save = True

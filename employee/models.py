@@ -85,8 +85,8 @@ class Employee(models.Model):
         max_length=15,
     )
     address = models.TextField(max_length=200, blank=True, null=True)
-    country = models.CharField(max_length=30, blank=True, null=True)
-    state = models.CharField(max_length=30, null=True, blank=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100, null=True, blank=True)
     city = models.CharField(max_length=30, null=True, blank=True)
     zip = models.CharField(max_length=20, null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
@@ -495,9 +495,6 @@ class Employee(models.Model):
             self.is_active = True
             super().save(*args, **kwargs)
         employee = self
-        if prev_employee and prev_employee.email != employee.email:
-            employee.employee_user_id.username = employee.email
-            employee.employee_user_id.save()
 
         if employee.employee_user_id is None:
             # Create user if no corresponding user exists
@@ -939,3 +936,4 @@ from accessibility.accessibility import ACCESSBILITY_FEATURE
 ACCESSBILITY_FEATURE.append(("gender_chart", "Can view Gender Chart"))
 ACCESSBILITY_FEATURE.append(("department_chart", "Can view Department Chart"))
 ACCESSBILITY_FEATURE.append(("employees_chart", "Can view Employees Chart"))
+ACCESSBILITY_FEATURE.append(("birthday_view", "Can view Birthdays"))
