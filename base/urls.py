@@ -92,6 +92,7 @@ urlpatterns = [
     ),
     path("reset-send-success", views.reset_send_success, name="reset-send-success"),
     path("change-password", views.change_password, name="change-password"),
+    path("change-username", views.change_username, name="change-username"),
     path("logout", views.logout_user, name="logout"),
     path("settings", views.common_settings, name="settings"),
     path(
@@ -508,6 +509,11 @@ urlpatterns = [
         "rotating-shift-assign-info-export",
         views.rotating_shift_assign_export,
         name="rotating-shift-assign-info-export",
+    ),
+    path(
+        "rotating-shift-assign-info-import",
+        views.rotating_shift_assign_import,
+        name="rotating-shift-assign-info-import",
     ),
     path(
         "settings/rotating-shift-assign-update/<int:id>/",
